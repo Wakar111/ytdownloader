@@ -58,6 +58,7 @@ pip install --upgrade yt-dlp
 - **Auto-Update** — yt-dlp wird beim Start automatisch aktualisiert, damit Downloads nicht an veralteten APIs scheitern.
 - **Mobile-ready** — Funktioniert im Handy-Browser über das lokale WLAN genauso gut wie am Desktop.
 
+## Beispiel Links:
 https://youtu.be/Ej6BjRFRYks?si=3hlwjMOWkXTQJ68Q
 https://youtu.be/lJZ8wWCnwow?si=AdiVcWPBCj2M0RBh
 https://youtu.be/Ej6BjRFRYks?si=B0YKNbEHFlpYe5Jf
