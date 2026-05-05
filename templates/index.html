@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Downloader</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.css') }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%AC%87%EF%B8%8F%3C/text%3E%3C/svg%3E" />
+</head>
+<body class="min-h-screen text-slate-200 font-sans antialiased">
+
+  <div id="toast-container" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-50 flex flex-col gap-2"></div>
+
+  <div class="relative min-h-screen flex flex-col">
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <div class="bg-orb absolute -top-40 -right-40 w-96 h-96 bg-red-500/5 rounded-full blur-3xl"></div>
+      <div class="bg-orb absolute -bottom-40 -left-40 w-96 h-96 bg-violet-500/5 rounded-full blur-3xl"></div>
+    </div>
+
+    <div class="relative max-w-2xl w-full mx-auto px-4 py-8 sm:py-14 flex-1">
+      <header class="mb-10 text-center animate-fade-in">
+        <div class="inline-flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-500" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-bold tracking-tight themed-text">
+            YT Downloader
+          </h1>
+        </div>
+        <button id="theme-toggle" type="button" title="Theme wechseln"
+                class="absolute top-8 right-4 sm:top-14 sm:right-0 p-3 rounded-2xl
+                       bg-slate-700 hover:bg-slate-600 border border-slate-600
+                       shadow-lg shadow-black/20
+                       hover:scale-110 active:scale-95 transition-all duration-200 z-10">
+          <svg id="icon-moon" class="w-5 h-5 text-amber-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <svg id="icon-sun" class="w-5 h-5 text-amber-500 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </button>
+        <p class="text-sm text-slate-400 max-w-md mx-auto">
+          Videos in verschiedenen Formaten herunterladen.
+          Mehrere URLs gleichzeitig m&ouml;glich.
+        </p>
+      </header>
+
+      <main class="glass rounded-3xl shadow-2xl shadow-black/40 p-4 sm:p-6 border border-white/[0.06] animate-slide-up">
+        <form id="download-form" class="space-y-3">
+          <div id="items-container" class="space-y-3"></div>
+
+          <div class="flex flex-col sm:flex-row gap-2 pt-3">
+            <button type="button" id="add-btn"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl
+                           bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12]
+                           border border-white/[0.06] hover:border-white/[0.12]
+                           text-slate-300 font-medium transition-all duration-200">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Weiteres Video
+            </button>
+            <button type="submit" id="submit-btn"
+                    class="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl
+                           bg-red-600 hover:bg-red-500 active:bg-red-700
+                           disabled:bg-red-900/30 disabled:text-red-300/40 disabled:border-red-900/20
+                           disabled:cursor-not-allowed text-white font-semibold
+                           border border-red-500/30 hover:border-red-400/40
+                           glow-red transition-all duration-200">
+              <svg id="submit-icon" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              <svg id="submit-spinner" class="w-5 h-5 animate-spin hidden" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+              <span id="submit-text">Alle herunterladen</span>
+            </button>
+          </div>
+        </form>
+
+        <section id="progress-section" class="mt-6 hidden">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <h2 class="text-base font-semibold text-white">Downloads</h2>
+              <button id="cancel-btn" class="hidden px-3 py-1 text-xs font-medium rounded-lg
+                             bg-rose-500/15 text-rose-400 border border-rose-500/25
+                             hover:bg-rose-500/25 transition-all duration-200">
+                Abbrechen
+              </button>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="overall-count" class="text-xs text-slate-400"></span>
+              <div class="w-24 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div id="overall-bar" class="progress-bar h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+          <div id="progress-list" class="space-y-3"></div>
+        </section>
+      </main>
+
+      <section class="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="glass rounded-2xl p-4 border border-white/[0.06] text-center">
+          <div class="w-9 h-9 mx-auto mb-3 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+            <svg class="w-4.5 h-4.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101"/><path stroke-linecap="round" stroke-linejoin="round" d="M10.172 13.828a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.102 1.101"/></svg>
+          </div>
+          <h3 class="text-sm font-semibold text-white mb-1">1. URL einfügen</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">YouTube-Link kopieren und in das Eingabefeld einfügen. Mehrere Videos mit "+ Weiteres Video" hinzufügen.</p>
+        </div>
+        <div class="glass rounded-2xl p-4 border border-white/[0.06] text-center">
+          <div class="w-9 h-9 mx-auto mb-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+            <svg class="w-4.5 h-4.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          </div>
+          <h3 class="text-sm font-semibold text-white mb-1">2. Format wählen</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Video-Format (MP4, MKV, WEBM) oder Audio-Format (MP3, FLAC, WAV, ...) auswählen.</p>
+        </div>
+        <div class="glass rounded-2xl p-4 border border-white/[0.06] text-center">
+          <div class="w-9 h-9 mx-auto mb-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <svg class="w-4.5 h-4.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+          </div>
+          <h3 class="text-sm font-semibold text-white mb-1">3. Herunterladen</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">Auf "Alle herunterladen" klicken. Der Fortschritt wird live angezeigt. Dateien landen im Downloads-Ordner.</p>
+        </div>
+      </section>
+
+      <section class="mt-8 glass rounded-2xl p-5 sm:p-6 border border-white/[0.06]">
+        <h2 class="text-base font-semibold text-white mb-4 text-center">Was diese App besonders macht</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Dark / Light Mode</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Augenschonend arbeiten. Dein Theme wird gespeichert.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-rose-500/10 border border-rose-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728A9 9 0 015.636 5.636"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Duplikat-Erkennung</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Gleiche URL + Format wird erkannt und nicht erneut heruntergeladen.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-4 4h4m2-4a4 4 0 110 8 4 4 0 010-8z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Playlist-Support</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Ganze Playlists mit einem Klick. Checkbox aktivieren und loslegen.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Thumbnail-Vorschau</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Titel, Dauer und Uploader direkt beim Einfügen der URL sehen.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Parallele Downloads</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Bis zu 3 gleichzeitig. Weitere warten automatisch in der Queue.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Echtzeit-Fortschritt</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Speed, ETA und Prozent live für jeden einzelnen Download.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-pink-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Session-Persistenz</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Seite aktualisiert? URLs und Einstellungen bleiben erhalten.</p>
+            </div>
+          </div>
+          <div class="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+            <div class="w-8 h-8 shrink-0 rounded-lg bg-teal-500/10 border border-teal-500/20 flex items-center justify-center">
+              <svg class="w-4 h-4 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-white">Mobile-ready</p>
+              <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">Funktioniert im Handy-Browser über das lokale WLAN.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="mt-6 text-center text-xs text-slate-600">
+        Erstellt von <a href="https://innovativ-tech.de/" class="hover:text-slate-400 transition underline" target="_blank" rel="noopener">Innovative-Tech</a>
+      </footer>
+    </div>
+  </div>
+
+  <template id="item-template">
+    <div class="item-row rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4 transition-all duration-200 hover:bg-white/[0.05]">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="hidden thumbnail-wrap shrink-0">
+          <img class="thumbnail-img w-full sm:w-28 h-16 object-cover rounded-xl bg-white/5" src="" alt="" />
+        </div>
+        <div class="flex-1 flex flex-col gap-2">
+          <div class="flex gap-2">
+            <div class="relative flex-1">
+              <input type="url" name="url" required
+                     placeholder="YouTube-URL eingeben oder einfugen ..."
+                     class="w-full px-3.5 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.08]
+                            text-slate-100 placeholder-slate-500 text-sm
+                            focus:outline-none focus:border-red-500/40 input-glow transition-all duration-200" />
+              <div class="url-status absolute right-3 top-1/2 -translate-y-1/2 hidden">
+                <svg class="valid-icon w-4 h-4 text-emerald-400 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                <svg class="invalid-icon w-4 h-4 text-rose-400 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </div>
+            </div>
+            <button type="button" class="remove-btn p-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]
+                                         hover:bg-rose-500/15 hover:border-rose-500/30 hover:text-rose-400
+                                         text-slate-500 transition-all duration-200" title="Entfernen">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1.5 text-xs themed-faint">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                Format:
+              </div>
+              <select name="format"
+                      class="px-2.5 py-1.5 rounded-lg themed-input text-xs
+                             focus:outline-none focus:border-red-500/40 input-glow transition-all duration-200 cursor-pointer">
+                <optgroup label="Audio">
+                  {% for f in formats if f in ['mp3', 'aac', 'flac', 'm4a', 'opus', 'wav'] %}
+                  <option value="{{ f }}" {% if f == 'mp3' %}selected{% endif %}>{{ f | upper }}</option>
+                  {% endfor %}
+                </optgroup>
+                <optgroup label="Video">
+                  {% for f in formats if f in ['mp4', 'mkv', 'webm'] %}
+                  <option value="{{ f }}">{{ f | upper }}</option>
+                  {% endfor %}
+                </optgroup>
+              </select>
+            </div>
+            <label class="flex items-center gap-1.5 text-xs themed-faint cursor-pointer select-none">
+              <input type="checkbox" name="playlist" class="w-3.5 h-3.5 rounded accent-red-500 cursor-pointer" />
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 10h16M4 14h10m-4 4h4m2-4a4 4 0 110 8 4 4 0 010-8z"/></svg>
+              Playlist
+            </label>
+          </div>
+          <div class="video-info hidden mt-2 text-xs themed-faint animate-fade-in">
+            <p class="info-title leading-relaxed"></p>
+            <p class="flex items-center gap-2 mt-0.5">
+              <span class="info-duration"></span>
+              <span class="info-uploader"></span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="progress-template">
+    <div class="progress-row rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3 sm:p-4 animate-slide-up transition-all duration-300">
+      <div class="flex gap-3">
+        <div class="thumbnail-small shrink-0 hidden">
+          <img class="w-16 h-10 object-cover rounded-lg bg-white/5" data-field="thumb" src="" alt="" />
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-start gap-2 mb-2">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-medium text-white truncate" data-field="title">Wird geladen ...</p>
+              <div class="flex items-center gap-2 mt-0.5">
+                <span class="text-xs text-slate-500 truncate" data-field="url"></span>
+              </div>
+            </div>
+            <span class="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-lg bg-white/[0.06] text-slate-400 shrink-0" data-field="status">wartet</span>
+          </div>
+          <div class="w-full bg-white/[0.05] rounded-full h-1.5 overflow-hidden">
+            <div class="progress-bar h-full bg-gradient-to-r from-red-500 to-rose-400 rounded-full" style="width: 0%" data-field="bar"></div>
+          </div>
+          <div class="flex justify-between items-center mt-2 text-[11px] text-slate-500">
+            <div class="flex items-center gap-3">
+              <span data-field="format"></span>
+              <span data-field="speed" class="hidden"></span>
+              <span data-field="eta" class="hidden"></span>
+            </div>
+            <span class="font-mono" data-field="percent">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="toast-template">
+    <div class="toast-enter glass rounded-2xl px-4 py-3 border border-white/[0.08] shadow-xl shadow-black/30
+                flex items-start gap-3 text-sm">
+      <div class="toast-icon shrink-0 mt-0.5"></div>
+      <div class="flex-1 min-w-0">
+        <p class="toast-title font-medium text-white"></p>
+        <p class="toast-message text-slate-400 text-xs mt-0.5"></p>
+      </div>
+      <button class="toast-close shrink-0 text-slate-500 hover:text-white transition p-1 -mr-1 -mt-0.5" onclick="this.closest('[class*=toast-enter]').remove()">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </template>
+
+  <script type="module" src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
