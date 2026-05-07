@@ -115,6 +115,7 @@ form.addEventListener('submit', async (e) => {
 
   setLoading(true);
   cancelBtn.classList.remove('hidden');
+  showToast('info', 'Download beginnt in Kürze ...', 'Pakete werden geprüft.');
 
   try {
     const res = await fetch('/api/download', {
@@ -128,6 +129,9 @@ form.addEventListener('submit', async (e) => {
     }
     const data = await res.json();
     activeTaskId = data.task_id;
+    if (data.ytdlp?.updated) {
+      showToast('success', 'yt-dlp aktualisiert', `Neue Version: ${data.ytdlp.version}`);
+    }
     showProgressSection();
     renderProgressItems(data.items);
     showToast('info', 'Downloads gestartet', `${data.items.length} Video(s) werden heruntergeladen.`);

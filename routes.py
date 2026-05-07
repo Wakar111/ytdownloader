@@ -7,7 +7,7 @@ import uuid
 
 from flask import Response, jsonify, render_template, request
 
-from config import ALL_FORMATS, DOWNLOAD_DIR, YTDLP_STATUS
+from config import ALL_FORMATS, DOWNLOAD_DIR, YTDLP_STATUS, ensure_ytdlp_fresh
 from downloader import TASK_QUEUES, TASK_STATE, cancel_task, extract_video_info, run_task
 
 
@@ -41,6 +41,8 @@ def register_routes(app):
         if not items:
             return jsonify({"error": "Keine gültigen URLs übergeben."}), 400
 
+        ytdlp_info = ensure_ytdlp_fresh()
+
         task_id = uuid.uuid4().hex
         TASK_QUEUES[task_id] = queue.Queue()
         TASK_STATE[task_id] = [
@@ -48,7 +50,11 @@ def register_routes(app):
             for it in items
         ]
         threading.Thread(target=run_task, args=(task_id, items), daemon=True).start()
-        return jsonify({"task_id": task_id, "items": TASK_STATE[task_id]})
+        return jsonify({
+            "task_id": task_id,
+            "items": TASK_STATE[task_id],
+            "ytdlp": ytdlp_info,
+        })
 
     @app.get("/api/info")
     def api_info():
